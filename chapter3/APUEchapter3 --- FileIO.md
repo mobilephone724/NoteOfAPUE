@@ -52,7 +52,7 @@ int close(int fd);
 ```
 When a process terminates, all of its open files are closed automatically by the kernel
 
-## lseek function
+## `lseek` function
 1.  Every open file has an associated ''**current file offset**,’’ normally a non-negative integer that measures the number of bytes from the beginning of the file.Read and write operations normally start at the current file offset and cause the offset to be incremented by the number of bytes read or written An open file’s offset can be set explicitly by calling lseek
     ```c
     #include <unistd.h>
@@ -71,7 +71,7 @@ When a process terminates, all of its open files are closed automatically by the
 4.  The file’s offset can be greater than the file’s current size, in which case the next  write to the file will extend the file. This is referred to as creating a hole in a file and is  allowed. Any bytes in a file that have not been written are read back as 0. 
 5.  **A hole in a file isn’t required to have storage backing it on disk**
 
-## read function
+## `read` function
 ```c
 #include <unistd.h>
 ssize_t read(int fd, void *buf, size_t nbytes);
@@ -93,7 +93,7 @@ difference
 1.  `void *` to `char *`
 2.  `0` for end-of-file and `-1` for an error
 
-## write function
+## `write` function
 ```c
 #include <unistd.h>
 ssize_t write(int fd, const void *buf, size_t nbytes)
@@ -159,7 +159,7 @@ It is possible for more than one file descriptor entry to point to the same file
 
 Note the difference in scope between the file descriptor flags and the file status flags. The former apply only to a single descriptor in a single process, whereas the latter apply to all descriptors in any process that point to the given file table entry
 
-## 3.11 Atomic OPerations
+## Atomic Operations
 
 Any operation that requires more than one function call cannot be atomic, as there is always the possibility that the kernel might temporarily suspend the process between the two function calls
 
@@ -186,7 +186,7 @@ With dup2, we specify the value of the new descriptor with the fd2 argument. If 
 
 <img src="pic/Screenshot%20from%202021-05-05%2009-34-21.png" width = 100% height = 100% div align=center />
 
-## sync, fsync , and fdatasync function
+## `sync`,`fsync` , and `fdatasync` function
 
 Traditional implementations of the UNIX System have a buffer cache or page cache in the kernel through which most disk I/O passes. When we write data to a file, the data is normally copied by the kernel into one of its buffers and queued for writing to disk at some later time. This is called delayed write
 
@@ -206,7 +206,7 @@ The function `fsync` refers only to a single file, specified by the file descrip
 
 The fdatasync function is similar to fsync, but it affects only the data portions of a file. With fsync, the file’s attributes are also updated synchronously
 
-## 3.14 fcntl function
+## `fcntl` function
 
 ```c
 #include <fcntl.h>
@@ -220,3 +220,44 @@ The fcntl function is used for five different purposes
 3. Get/set file status flags (cmd = F_GETFL or F_SETFL)
 4. Get/set asynchronous I/O ownership (cmd = F_GETOWN or F_SETOWN)
 5. Get/set record locks (cmd = F_GETLK, F_SETLK, or F_SETLKW)
+
+## `ioctl` function
+
+The `ioctl` function has always been the catchall for I/O operations. Terminal I/O was the biggest user of this function
+
+```c
+#include <unistd.h> /* System V */
+#include <sys/ioctl.h> /* BSD and Linux */
+int ioctl(int fd, int request, ...);
+//Returns: −1 on error, something else if OK
+```
+
+Normally, additional device-specific headers are required. For example, the `ioctl` commands for terminal I/O, beyond the basic operations specified by POSIX.1, all require the  header.
+
+
+
+Each device driver can define its own set of `ioctl` commands. The system, however, provides generic `ioctl` commands for different classes of devices
+
+## `/dev/fd`
+
+Newer systems provide a directory named `/dev/fd` whose entries are files named 0, 1, 2, and so on
+
+In the function call 
+
+```c
+fd = open("/dev/fd/0", mode); 
+```
+
+most systems ignore the specified mode, whereas others require that it be a **subset** of the mode used when the **referenced file** (standard input, in this case) was originally opened. Because the previous open is equivalent to 
+
+```c
+fd = dup(0); 
+```
+
+the descriptors 0 and `fd` share the same file table entry
+
+For example, if descriptor 0 was opened read-only, we can only read on `fd`. Even if the system ignores the open mode and the call succeeds, we still can’t write to `fd`.
+
+The **main use** of the `/dev/fd` files is from the shell. It allows programs that use pathname arguments to **handle standard input and standard output in the same manner as other pathnames.**  `cat -` 变成 `cat /dev/fd/0`
+
+The special meaning of `-` as a command-line argument to refer to the standard input or the standard output is a kludge that has crept into many programs. There are also problems if we specify - as the first file, as it looks like the start of another command-line option. Using `/dev/fd` is a step toward uniformity and cleanliness.
