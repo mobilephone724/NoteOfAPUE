@@ -178,3 +178,8 @@ The user ID of a new file is set to the effective user ID of the process. POSIX.
 2. The group ID of a new file can be the group ID of the directory in which the file is being created
 
 Using the second option—inheriting the directory’s group ID—assures us that all files and directories created in that directory will have the same group ID as the directory.
+
+## 4.7 `access` and `faccessat` functions
+
+
+
